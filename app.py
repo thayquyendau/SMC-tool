@@ -13,7 +13,7 @@ st.caption("Upload ảnh, xử lý ngay, và tải ZIP kết quả.")
 
 
 def crop_with_repo_logic(img: Image.Image) -> Image.Image:
-    """Crop logic: center 1/3 width, top half; then bottom half of that crop."""
+    """Crop logic: center 1/3 width, top half. (Removed final 1/2 crop.)"""
     rgb = img.convert("RGB")
     w, h = rgb.size
 
@@ -23,13 +23,8 @@ def crop_with_repo_logic(img: Image.Image) -> Image.Image:
 
     first_box = (w // 3, 0, 2 * w // 3, h // 2)
     first = rgb.crop(first_box)
-    tw, th = first.size
-
-    if tw < 1 or th < 2:
-        return rgb
-
-    second_box = (0, th // 2, tw, th)
-    return first.crop(second_box)
+    # Return the first crop directly; do not perform the additional half-height crop.
+    return first
 
 
 def safe_output_ext(input_name: str) -> str:
@@ -69,7 +64,15 @@ uploaded_files = st.file_uploader(
     type=["jpg", "jpeg", "png", "bmp", "webp", "tiff"],
     accept_multiple_files=True,
     help="Khuyến nghị 50-100 ảnh/lượt để ổn định trên Streamlit Cloud.",
+    key="uploads",
 )
+
+# Nút reset: xóa các session state liên quan để tải ảnh mới
+if st.button("Reset (Tải ảnh mới)"):
+    for k in ("result_zip", "stats", "errors", "last_upload_signature", "uploads"):
+        if k in st.session_state:
+            st.session_state[k] = [] if k == "errors" else None
+    st.experimental_rerun()
 
 if uploaded_files:
     total_upload = len(uploaded_files)
